@@ -1,6 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
-
+import torch
 import mmcv
 import numpy as np
 from mmcv.image import imwrite
@@ -175,7 +175,6 @@ class TopDown(BasePose):
         if self.with_keypoint:
             output_heatmap = self.keypoint_head.inference_model(
                 features, flip_pairs=None)
-
         if self.test_cfg.get('flip_test', True):
             img_flipped = img.flip(3)
             features_flipped = self.backbone(img_flipped)
@@ -198,6 +197,38 @@ class TopDown(BasePose):
             result['output_heatmap'] = output_heatmap
 
         return result
+
+    def forward_kneron(self, img, img_metas, return_heatmap=False, **kwargs):
+        """Defines the computation performed at every call when testing."""
+        assert img.size(0) == len(img_metas)
+        batch_size, _, img_height, img_width = img.shape
+        if batch_size > 1:
+            assert 'bbox_id' in img_metas[0]
+
+        result = {}
+        setattr(self.keypoint_head, 'kn', True)
+        if hasattr(self, '__Kn_ONNX_Sess__'):
+            tmp = getattr(self, '__Kn_ONNX_Sess__').run(
+                None, {'input.1': img.cpu().detach().numpy()})
+            device = torch.device(
+                "cuda:0" if torch.cuda.is_available() else "cpu")
+            output_heatmap = []
+            for o in tmp:
+                output_heatmap.append(torch.from_numpy(o).float().to(device))
+            output_heatmap = self.keypoint_head.inference_model(
+                output_heatmap, flip_pairs=None)
+            keypoint_result = self.keypoint_head.decode(
+                img_metas, output_heatmap, img_size=[img_width, img_height])
+            result.update(keypoint_result)
+
+            if not return_heatmap:
+                output_heatmap = None
+
+            result['output_heatmap'] = output_heatmap
+
+            return result
+        else:
+            raise ModuleNotFoundError('Can not find the onxx session')
 
     def forward_dummy(self, img):
         """Used for computing network FLOPs.

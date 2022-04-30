@@ -9,7 +9,8 @@ import torch
 from mmcv.parallel import collate, scatter
 from mmcv.runner import load_checkpoint
 from PIL import Image
-
+import sys
+sys.path.append(os.getcwd())
 from mmpose.core.post_processing import oks_nms
 from mmpose.datasets.dataset_info import DatasetInfo
 from mmpose.datasets.pipelines import Compose
@@ -333,6 +334,20 @@ def _inference_single_pose_model(model,
     return result['preds'], result['output_heatmap']
 
 
+def set_kn_params_to_model_for_kn_inference_model(model,
+                                                  onnx_model_sess=None,
+                                                  kneron_plus_params=None):
+    if hasattr(model, '__Kn_ONNX_Sess__'):
+        delattr(model, '__Kn_ONNX_Sess__')
+    if hasattr(model, '__Kn_PLUS_Params__'):
+        delattr(model, '__Kn_PLUS_Params__')
+
+    if onnx_model_sess != None:
+        setattr(model, '__Kn_ONNX_Sess__', onnx_model_sess)
+    elif kneron_plus_params != None:
+        setattr(model, '__Kn_PLUS_Params__', kneron_plus_params)
+
+
 def inference_top_down_pose_model(model,
                                   img_or_path,
                                   person_results=None,
@@ -438,6 +453,150 @@ def inference_top_down_pose_model(model,
 
     with OutputHook(model, outputs=outputs, as_tensor=False) as h:
         # poses is results['pred'] # N x 17x 3
+        poses, heatmap = _inference_single_pose_model(
+            model,
+            img_or_path,
+            bboxes_xywh,
+            dataset=dataset,
+            dataset_info=dataset_info,
+            return_heatmap=return_heatmap)
+
+        if return_heatmap:
+            h.layer_outputs['heatmap'] = heatmap
+
+        returned_outputs.append(h.layer_outputs)
+
+    assert len(poses) == len(person_results), print(
+        len(poses), len(person_results), len(bboxes_xyxy))
+    for pose, person_result, bbox_xyxy in zip(poses, person_results,
+                                              bboxes_xyxy):
+        pose_result = person_result.copy()
+        pose_result['keypoints'] = pose
+        pose_result['bbox'] = bbox_xyxy
+        pose_results.append(pose_result)
+
+    return pose_results, returned_outputs
+
+
+def inference_top_down_pose_model_kn(model,
+                                     img_or_path,
+                                     person_results=None,
+                                     bbox_thr=None,
+                                     format='xywh',
+                                     dataset='TopDownCocoDataset',
+                                     dataset_info=None,
+                                     return_heatmap=False,
+                                     outputs=None,
+                                     onnx_model_sess=None,
+                                     kneron_plus_params=None):
+    """Inference a single image with a list of person bounding boxes.
+
+    Note:
+        - num_people: P
+        - num_keypoints: K
+        - bbox height: H
+        - bbox width: W
+
+    Args:
+        model (nn.Module): The loaded pose model.
+        img_or_path (str| np.ndarray): Image filename or loaded image.
+        person_results (list(dict), optional): a list of detected persons that
+            contains ``bbox`` and/or ``track_id``:
+
+            - ``bbox`` (4, ) or (5, ): The person bounding box, which contains
+                4 box coordinates (and score).
+            - ``track_id`` (int): The unique id for each human instance. If
+                not provided, a dummy person result with a bbox covering
+                the entire image will be used. Default: None.
+        bbox_thr (float | None): Threshold for bounding boxes. Only bboxes
+            with higher scores will be fed into the pose detector.
+            If bbox_thr is None, all boxes will be used.
+        format (str): bbox format ('xyxy' | 'xywh'). Default: 'xywh'.
+
+            - `xyxy` means (left, top, right, bottom),
+            - `xywh` means (left, top, width, height).
+        dataset (str): Dataset name, e.g. 'TopDownCocoDataset'.
+            It is deprecated. Please use dataset_info instead.
+        dataset_info (DatasetInfo): A class containing all dataset info.
+        return_heatmap (bool) : Flag to return heatmap, default: False
+        outputs (list(str) | tuple(str)) : Names of layers whose outputs
+            need to be returned. Default: None.
+
+    Returns:
+        tuple:
+        - pose_results (list[dict]): The bbox & pose info. \
+            Each item in the list is a dictionary, \
+            containing the bbox: (left, top, right, bottom, [score]) \
+            and the pose (ndarray[Kx3]): x, y, score.
+        - returned_outputs (list[dict[np.ndarray[N, K, H, W] | \
+            torch.Tensor[N, K, H, W]]]): \
+            Output feature maps from layers specified in `outputs`. \
+            Includes 'heatmap' if `return_heatmap` is True.
+    """
+    # get dataset info
+    if (dataset_info is None and hasattr(model, 'cfg')
+            and 'dataset_info' in model.cfg):
+        dataset_info = DatasetInfo(model.cfg.dataset_info)
+    if dataset_info is None:
+        warnings.warn(
+            'dataset is deprecated.'
+            'Please set `dataset_info` in the config.'
+            'Check https://github.com/open-mmlab/mmpose/pull/663'
+            ' for details.', DeprecationWarning)
+
+    # only two kinds of bbox format is supported.
+    assert format in ['xyxy', 'xywh']
+
+    pose_results = []
+    returned_outputs = []
+
+    if person_results is None:
+        # create dummy person results
+        if isinstance(img_or_path, str):
+            width, height = Image.open(img_or_path).size
+        else:
+            height, width = img_or_path.shape[:2]
+        person_results = [{'bbox': np.array([0, 0, width, height])}]
+
+    if len(person_results) == 0:
+        return pose_results, returned_outputs
+
+    # Change for-loop preprocess each bbox to preprocess all bboxes at once.
+    bboxes = np.array([box['bbox'] for box in person_results])
+
+    # Select bboxes by score threshold
+    if bbox_thr is not None:
+        assert bboxes.shape[1] == 5
+        valid_idx = np.where(bboxes[:, 4] > bbox_thr)[0]
+        bboxes = bboxes[valid_idx]
+        person_results = [person_results[i] for i in valid_idx]
+
+    if format == 'xyxy':
+        bboxes_xyxy = bboxes
+        bboxes_xywh = _xyxy2xywh(bboxes)
+    else:
+        # format is already 'xywh'
+        bboxes_xywh = bboxes
+        bboxes_xyxy = _xywh2xyxy(bboxes)
+
+    # if bbox_thr remove all bounding box
+    if len(bboxes_xywh) == 0:
+        return [], []
+
+    with OutputHook(model, outputs=outputs, as_tensor=False) as h:
+        # poses is results['pred'] # N x 17x 3
+        assert hasattr(
+            model, 'forward_kneron'), 'Error: None implement kneron forward type'
+
+        if onnx_model_sess != None:
+            set_kn_params_to_model_for_kn_inference_model(
+                model, onnx_model_sess=onnx_model_sess)
+        elif kneron_plus_params != None:
+            set_kn_params_to_model_for_kn_inference_model(
+                model, kneron_plus_params=kneron_plus_params)
+
+        model.forward = model.forward_kneron
+
         poses, heatmap = _inference_single_pose_model(
             model,
             img_or_path,
@@ -875,3 +1034,22 @@ def process_mmdet_results(mmdet_results, cat_id=1):
         person_results.append(person)
 
     return person_results
+
+
+if __name__ == '__main__':
+    import onnxruntime
+    sess = onnxruntime.InferenceSession('/alghome/jason.kuo/mmpose_eric/test_flow_kneron_optimized.onnx')
+    model = init_pose_model('/alghome/jason.kuo/mmpose_eric/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn50_freihand2d_224x224.py')
+    pose_results, returned_outputs = inference_top_down_pose_model_kn(model,
+                                                                      '/alghome/jason.kuo/mmpose_eric/data/testdata_raw_bbox_freihand/00000004.jpg',
+                                                                      dataset='FreiHandDataset',
+                                                                      onnx_model_sess=sess)
+    img = vis_pose_result(model,
+                          '/alghome/jason.kuo/mmpose_eric/data/testdata_raw_bbox_freihand/00000004.jpg',
+                          pose_results,
+                          radius=4,
+                          thickness=1,
+                          bbox_color='green',
+                          dataset='FreiHandDataset',
+                          show=False,
+                          out_file='/alghome/jason.kuo/mmpose_eric/test.jpg')

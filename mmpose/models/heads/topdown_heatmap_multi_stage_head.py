@@ -1,6 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import copy as cp
-
+import torch
 import torch.nn as nn
 from mmcv.cnn import (ConvModule, DepthwiseSeparableConvModule, Linear,
                       build_activation_layer, build_conv_layer,
@@ -310,8 +310,11 @@ class PredictHeatmap(nn.Module):
 
     def forward(self, feature):
         feature = self.conv_layers(feature)
-        output = nn.functional.interpolate(
-            feature, size=self.out_shape, mode='bilinear', align_corners=True)
+        if torch.onnx.is_in_onnx_export() or not getattr(self, 'is_original_forward', False):
+            output = feature
+        else:
+            output = nn.functional.interpolate(
+                feature, size=self.out_shape, mode='bilinear', align_corners=True)
         if self.use_prm:
             output = self.prm(output)
         return output
@@ -529,9 +532,14 @@ class TopdownHeatmapMSMUHead(TopdownHeatmapBaseHead):
         assert len(x[0]) == self.num_units
         assert x[0][0].shape[1] == self.unit_channels
         for i in range(self.num_stages):
-            for j in range(self.num_units):
+            if torch.onnx.is_in_onnx_export() or not getattr(self, 'is_original_forward', False):
+                j = self.num_units - 1
                 y = self.predict_layers[i * self.num_units + j](x[i][j])
                 out.append(y)
+            else:
+                for j in range(self.num_units):
+                    y = self.predict_layers[i * self.num_units + j](x[i][j])
+                    out.append(y)
 
         return out
 
@@ -546,7 +554,15 @@ class TopdownHeatmapMSMUHead(TopdownHeatmapBaseHead):
             flip_pairs (None | list[tuple]):
                 Pairs of keypoints which are mirrored.
         """
-        output = self.forward(x)
+        if getattr(self, 'kn', False):
+            output = x
+            # print('==========')
+            # print(x[0].size())
+            # output = [nn.functional.interpolate(hm, size=self.out_shape, mode='bilinear', align_corners=True) for hm in x]
+            # print(output[0])
+            # exit(1)
+        else:
+            output = self.forward(x)
         assert isinstance(output, list)
         output = output[-1]
         if flip_pairs is not None:
@@ -559,6 +575,7 @@ class TopdownHeatmapMSMUHead(TopdownHeatmapBaseHead):
                 output_heatmap[:, :, :, 1:] = output_heatmap[:, :, :, :-1]
         else:
             output_heatmap = output.detach().cpu().numpy()
+        # for forward_kneron
         return output_heatmap
 
     def init_weights(self):
