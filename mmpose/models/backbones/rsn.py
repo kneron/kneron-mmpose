@@ -92,7 +92,12 @@ class RSB(nn.Module):
 
         identity = x
         x = self.conv_bn_relu1(x)
-        spx = torch.split(x, self.branch_channels, 1)
+        #spx = torch.split(x, self.branch_channels, 1)
+        spx0 = x[:,0:self.branch_channels,:,:]
+        spx1 = x[:,self.branch_channels:2*self.branch_channels,:,:]
+        spx2 = x[:,2*self.branch_channels:3*self.branch_channels,:,:]
+        spx3 = x[:,3*self.branch_channels:4*self.branch_channels,:,:]
+        spx = [spx0, spx1, spx2, spx3]
         outputs = list()
         outs = list()
         for i in range(self.num_steps):
