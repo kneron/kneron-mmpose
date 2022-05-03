@@ -555,10 +555,10 @@ class TopdownHeatmapMSMUHead(TopdownHeatmapBaseHead):
                 Pairs of keypoints which are mirrored.
         """
         if getattr(self, 'kn', False):
-            output = x
+            #output = x
             # print('==========')
             # print(x[0].size())
-            # output = [nn.functional.interpolate(hm, size=self.out_shape, mode='bilinear', align_corners=True) for hm in x]
+            output = [nn.functional.interpolate(hm, size=self.out_shape, mode='bilinear', align_corners=True) for hm in x]
             # print(output[0])
             # exit(1)
         else:
