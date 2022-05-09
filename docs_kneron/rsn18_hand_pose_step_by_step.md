@@ -56,7 +56,7 @@ The default learning rate in config files is for 1 GPUs and 64 img/gpu (batch si
 
 ### Step 1-1: Prepare datasets
 
-Public datasets such as FREIHAND.
+Public datasets such as [FREIHAND](https://lmb.informatik.uni-freiburg.de/projects/freihand/).
 We suggest that you download and extract the dataset to somewhere outside the project directory and symlink (`ln`) the dataset root to `kneron-mmpose/data`(`ln -s realpath/to/freihand kneron-mmpose/data/freihand`), as shown below:
 
 ```plain

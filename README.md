@@ -35,7 +35,7 @@ N/A
 ## Overview of Benchmark and Kneron Model Zoo
 | Backbone  | size   | Mem (GB) | AUC | PCK | EPE | Config | Download |
 |:---------:|:-------:|:-------:|:-------:|:-------:|:-------:|:--------:|:------:|
-| rsn18 | 224 |   0.014   |   0.855  | 0.987 | 3.687 | [config](https://github.com/kneron/kneron-mmpose/blob/main/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py)       |[model]((https://github.com/kneron/Model_Zoo/tree/main/mmpose/rsn18_freihand)
+| rsn18 | 224 |   0.014   |   0.855  | 0.987 | 3.687 | [config](https://github.com/kneron/kneron-mmpose/blob/main/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py)       |[model](https://github.com/kneron/Model_Zoo/tree/main/mmpose/rsn18_freihand)
 
 ## Installation
 - Please refer to [get_started.md](docs/en/get_started.md) for installation.
