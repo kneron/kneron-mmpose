@@ -98,10 +98,10 @@ cd ..(&&)
 * (Note 3) This is a "training from scratch" tutorial, which might need lots of time and gpu resource. If you want to train a model on your custom dataset, it is recommended that you read [finetune.md](https://github.com/open-mmlab/mmpose/blob/master/docs/en/tutorials/1_finetune.md), [customize_dataset.md](https://github.com/open-mmlab/mmpose/blob/master/docs/en/tutorials/2_new_dataset.md).
 
 # Step 2: Test trained model
-'tools/test.py' is a script that generates inference results from test set with our pytorch model and evaluates the results to see if our pytorch model is well trained (if `--eval` argument is given). Note that it's always good to evluate our pytorch model before deploying it.
+'tools/test_kneron.py' is a script that generates inference results from test set with our pytorch model and evaluates the results to see if our pytorch model is well trained (if `--eval` argument is given). Note that it's always good to evluate our pytorch model before deploying it.
 
 ```python
-python toos/test.py \
+python toos/test_kneron.py \
     configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py \
     work_dirs/latest.pth \
     --eval AUC EPE PCK \
