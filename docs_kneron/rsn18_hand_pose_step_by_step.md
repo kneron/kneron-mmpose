@@ -123,6 +123,7 @@ python tools/deployment/pytorch2onnx_kneron.py \
     configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py \
     work_dirs/rsn18_freihand2d_224x224/latest.pth \
     --output-file work_dirs/rsn18_freihand2d_224x224/latest.onnx \
+    --shape 1 3 224 224
 ```
 * 'configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py' is your pose training config
 * 'work_dirs/latest.pth' is your trained pose model
