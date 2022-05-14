@@ -91,9 +91,9 @@ python tools/train.py configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand
 ```bash
 mkdir work_dirs
 cd work_dirs
-wget (&)download_link_for_pretrained_model
+wget https://github.com/kneron/Model_Zoo/blob/main/mmpose/rsn18_freihand/latest.zip
 unzip latest.zip
-cd ..(&&)
+cd ..
 ```
 * (Note 3) This is a "training from scratch" tutorial, which might need lots of time and gpu resource. If you want to train a model on your custom dataset, it is recommended that you read [finetune.md](https://github.com/open-mmlab/mmpose/blob/master/docs/en/tutorials/1_finetune.md), [customize_dataset.md](https://github.com/open-mmlab/mmpose/blob/master/docs/en/tutorials/2_new_dataset.md).
 
@@ -116,7 +116,8 @@ EPE: 3.5918244972577695
 PCK: 0.9885881741008469
 ```
 
-# Step 3: Export onnx
+# Step 3: Export ONNX and Verify
+### Step 3-1: Export ONNX:
 'tools/deployment/pytorch2onnx_kneron.py' is a script provided by MMPose to help user to convert our trained pth model to onnx:
 ```python
 python tools/deployment/pytorch2onnx_kneron.py \
@@ -126,10 +127,24 @@ python tools/deployment/pytorch2onnx_kneron.py \
     --shape 1 3 224 224
 ```
 * 'configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py' is your pose training config
-* 'work_dirs/latest.pth' is your trained pose model
+* 'work_dirs/rsn18_freihand2d_224x224/latest.pth' is your trained pose model
 
 The output onnx should be the same name as 'work_dirs/latest.pth' with '.onnx' post-fix in the same folder.
-
+### Step 3-2: Verify ONNX:
+tools/test_kneron.py is a script provided by kneron-mmpose to help users to verify if our exported ONNX generates similar outputs with what our PyTorch model does:
+```python
+python toos/test_kneron.py \
+    configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py \
+    work_dirs/rsn18_freihand2d_224x224/latest.onnx \
+    --eval AUC EPE PCK \
+```
+The expected result of the command above should be something similar to the following text (the numbers may slightly differ):
+```
+AUC: 0.8550600860638303
+EPE: 3.6879744058500914
+PCK: 0.9876521630553889
+```
+Note that the ONNX results may differ from the PyTorch results due to some implementation differences between PyTorch and ONNXRuntime.
 
 # Step 4: Convert onnx to [NEF](http://doc.kneron.com/docs/#toolchain/manual/#5-nef-workflow) model for Kneron platform
 
