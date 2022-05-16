@@ -202,7 +202,7 @@ for (dirpath, dirnames, filenames) in walk("/data1/voc_data50"):
         image = Image.open(fullpath)
         image = image.convert("RGB")
         image = Image.fromarray(np.array(image)[...,::-1])
-        img_data = np.array(image.resize((640, 640), Image.BILINEAR)) / 256 - 0.5
+        img_data = np.array(image.resize((224, 224), Image.BILINEAR)) / 256 - 0.5
         print(fullpath)
         img_list.append(img_data)
 ```
@@ -225,10 +225,92 @@ print("\nCompile done. Save Nef file to '" + str(nef_model_path) + "'")
 
 You can find the NEF file at `/data1/batch_compile/models_720.nef`. `models_720.nef` is the final compiled model.
 
-# Step 5: Run [NEF](http://doc.kneron.com/docs/#toolchain/manual/#5-nef-workflow) model on KL720
+# Step 5: Run [NEF](http://doc.kneron.com/docs/#toolchain/manual/#5-nef-workflow) model on [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1)
 
-* Check Kneron PLUS official document:
-  * python version:
-    http://doc.kneron.com/docs/#plus_python/#_top
-  * C version:
-    http://doc.kneron.com/docs/#plus_c/getting_started/
+* N/A
+
+# Step 6 (For Kneron AI Competition 2022): Run [NEF](http://doc.kneron.com/docs/#toolchain/manual/#5-nef-workflow) model on [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1)
+
+[WARNING] Don't do this step in toolchain docker enviroment mentioned in Step 4
+
+Recommend you read [Kneron PLUS official document](http://doc.kneron.com/docs/#plus_python/#_top) first.
+
+### Step 6-1: Download and Install PLUS python library(.whl)
+* Go to [Kneron Education Center](https://www.kneron.com/tw/support/education-center/)
+* Scroll down to `OpenMMLab Kneron Edition` table
+* Select `Kneron Plus v1.3.0 (pre-built python library, firmware)`
+* Select `python library`
+* Select Your OS version (Ubuntu, Windows, MacOS, Raspberry pi)
+* Download `KneronPLUS-1.3.0-py3-none-any_{your_os}.whl`
+* Unzip downloaded `KneronPLUS-1.3.0-py3-none-any.whl.zip`
+* `pip install KneronPLUS-1.3.0-py3-none-any.whl`
+
+### Step 6-2: Download and upgrade KL720 USB accelerator firmware
+* Go to [Kneron education center](https://www.kneron.com/tw/support/education-center/)
+* Scroll down to `OpenMMLab Kneron Edition table`
+* Select `Kneron Plus v1.3.0 (pre-built python library, firmware)`
+* Select `firmware`
+* Download `kl720_frimware.zip (fw_ncpu.bin、fw_scpu.bin)`
+* unzip downloaded `kl720_frimware.zip`
+* upgrade KL720 USB accelerator firmware(fw_ncpu.bin、fw_scpu.bin) by following [document](http://doc.kneron.com/docs/#plus_python/getting_start/), `Sec. 2. Update AI Device to KDP2 Firmware`, `Sec. 2.2 KL720`
+
+### Step 6-3: Download RSN18-Hand example code
+* Go to [Kneron education center](https://www.kneron.com/tw/support/education-center/)
+* Scroll down to **OpenMMLab Kneron Edition** table
+* Select **kneron-mmpose**
+* Select **RSN18-Hand**
+* Download **rsn18hand_plus_demo.zip**
+* unzip downloaded **rsn18hand_plus_demo**
+
+### Step 6-4: Test enviroment is ready (require [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1))
+In `rsn18hand_plus_demo`, we provide a RSN18-HandPose example model and image for quick test. 
+* Plug in [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1) into your computer USB port
+* Go to the rsn18hand_plus_demo folder
+```bash
+cd /PATH/TO/rsn18hand_plus_demo
+```
+
+* Install required python libraries
+```bash
+pip install -r requirements.txt
+```
+
+* Run example on [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1)
+```python
+python KL720DemoGenericInferenceRSN18Hand_BypassHwPreProc.py -nef example_RSN18Hand_720.nef -img rsn_hand_test.png
+```
+
+Then you can see the inference result shown on your console window.
+The expected result of the command above will be something similar to the following text:
+```plain
+...
+[Connect Device]
+ - Success
+[Set Device Timeout]
+ - Success
+[Upload Model]
+ - Success
+======== NEF Info =========
+
+Toolchain ver= kneron/toolchain:v0.17.2
+
+Schema ver   = v0.9.1
+
+============================
+[Read Image]
+ - Success
+[Starting Inference Work]
+ - Starting inference loop 1 times
+ - .
+[Retrieve Inference Node Output ]
+ - Success
+[Output Result Image]
+ - Output hand-pose result on 'output_rsn_hand_test.png'
+...
+```
+
+### Step 6-4: Run your NEF model and your image on [KL720 USB accelerator](https://www.kneo.ai/products/hardwares/HW2020122500000007/1)
+Use the same script in previous step, but now we change the input NEF model path and image to yours
+```bash
+python KL720DemoGenericInferenceRSN18Hand_BypassHwPreProc.py -img /PATH/TO/YOUR_IMAGE.bmp -nef /PATH/TO/YOUR/720_NEF_MODEL.nef
+```
