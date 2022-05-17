@@ -35,15 +35,15 @@ N/A
 ## Overview of Benchmark and Kneron Model Zoo
 | Backbone  | size   | Mem (GB) | AUC | PCK | EPE | Config | Download |
 |:---------:|:-------:|:-------:|:-------:|:-------:|:-------:|:--------:|:------:|
-| rsn18 | 224 |   0.014   |   0.855  | 0.987 | 3.687 | [config](https://github.com/kneron/kneron-mmpose/blob/main/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py)       |[model](https://github.com/kneron/Model_Zoo/tree/main/mmpose/rsn18_freihand)
+| rsn18 | 224 |   0.014   |   0.855  | 0.987 | 3.687 | [config](https://github.com/kneron/kneron-mmpose/blob/main/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py)       |[model](https://github.com/kneron/Model_Zoo/blob/main/mmpose/rsn18_freihand/latest.zip)
 
 ## Installation
-- Please refer to [get_started.md](docs/en/get_started.md) for installation.
+- Please refer to [get_started.md](docs/en/getting_started.md) for installation.
 - Please refer to [Kneron PLUS - Python: Installation](http://doc.kneron.com/docs/#plus_python/introduction/install_dependency/) for the environment setup for Kneron USB accelerator.
 
 ## Getting Started
 ### Tutorial - Kneron Edition
-- [rsn18_hand_pose_step_by_step.md](https://github.com/kneron/kneron-mmpose/blob/update_document/docs_kneron/rsn18_hand_step_by_step.md): A tutorial for users to get started easily. To see detailed documents, please see below.
+- [rsn18_hand_pose_step_by_step.md](https://github.com/kneron/kneron-mmpose/blob/main/docs_kneron/rsn18_hand_pose_step_by_step.md): A tutorial for users to get started easily. To see detailed documents, please see below.
 
 ### Documents - Kneron Edition
 - [Kneron ONNX Export] (under development)
