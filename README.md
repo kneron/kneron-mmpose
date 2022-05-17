@@ -38,7 +38,7 @@ N/A
 | rsn18 | 224 |   0.014   |   0.855  | 0.987 | 3.687 | [config](https://github.com/kneron/kneron-mmpose/blob/main/configs/hand/2d_kpt_sview_rgb_img/topdown_heatmap/freihand2d/rsn18_freihand2d_224x224.py)       |[model](https://github.com/kneron/Model_Zoo/blob/main/mmpose/rsn18_freihand/latest.zip)
 
 ## Installation
-- Please refer to [get_started.md](docs/en/getting_started.md) for installation.
+- Please refer to [get_started.md](https://github.com/kneron/kneron-mmpose/blob/main/docs/en/getting_started.md) for installation.
 - Please refer to [Kneron PLUS - Python: Installation](http://doc.kneron.com/docs/#plus_python/introduction/install_dependency/) for the environment setup for Kneron USB accelerator.
 
 ## Getting Started
